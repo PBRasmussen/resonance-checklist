@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance Shard Log</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f4f2f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12111c" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky progress header, then next-reward card, then a 99-row tap-to-tick list with a note field per shard. Gold accent echoes the in-game sparkle. */
+:root {
+  --bg: #f4f2f8;
+  --surface: #ffffff;
+  --surface-2: #eae6f2;
+  --fg: #1d1a2b;
+  --muted: #5f5a75;
+  --line: #d6d0e3;
+  --accent: #9a6700;
+  --accent-soft: #f3e3b8;
+  --on-accent: #ffffff;
+  --ok: #1f7a4d;
+  --font-display: "Marcellus", "Palatino Linotype", Georgia, serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12111c;
+    --surface: #1b1a29;
+    --surface-2: #26243a;
+    --fg: #ece9f6;
+    --muted: #a29dbb;
+    --line: #34314b;
+    --accent: #e9b949;
+    --accent-soft: #3b3220;
+    --on-accent: #1a1405;
+    --ok: #62d296;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12111c;
+  --surface: #1b1a29;
+  --surface-2: #26243a;
+  --fg: #ece9f6;
+  --muted: #a29dbb;
+  --line: #34314b;
+  --accent: #e9b949;
+  --accent-soft: #3b3220;
+  --on-accent: #1a1405;
+  --ok: #62d296;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+.wrap { max-width: 640px; margin: 0 auto; }
+header.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--bg);
+  padding-block: 14px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.titlerow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+.count { font-variant-numeric: tabular-nums; font-family: var(--font-display); font-size: 1.35rem; color: var(--accent); white-space: nowrap; }
+.count small { font-size: 0.9rem; color: var(--muted); }
+.bar { position: relative; height: 10px; border-radius: 5px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); width: 0; transition: width 0.25s ease; }
+.bar > b { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bg); opacity: 0.8; }
+.sub { color: var(--muted); font-size: 0.85rem; margin: 8px 0 0; }
+main { display: flex; flex-direction: column; gap: 20px; padding-top: 18px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.1rem; margin: 0 0 6px; }
+.next { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.next .what { min-width: 0; }
+.next .what strong { font-size: 1.05rem; }
+.pill { font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.pill.ok { background: var(--surface-2); color: var(--ok); }
+details > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+details > summary:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+ul.ms { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+ul.ms li { display: grid; grid-template-columns: 2.6rem 1fr auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+ul.ms .t { font-variant-numeric: tabular-nums; font-family: var(--font-display); color: var(--accent); }
+ul.ms .r { min-width: 0; overflow-wrap: anywhere; }
+ul.ms li.locked .r, ul.ms li.locked .t { color: var(--muted); }
+.claim { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); min-height: 32px; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); color: var(--fg); font: inherit; font-size: 0.9rem; padding: 8px 14px; min-height: 40px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.search { flex: 1 1 140px; min-width: 0; }
+input[type="search"], input.note, textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-height: 44px;
+}
+textarea { min-height: 110px; resize: vertical; font-size: 0.9rem; }
+ol.shards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ol.shards li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px 6px 6px; }
+ol.shards li.done { background: var(--accent-soft); border-color: transparent; }
+.chk { display: inline-flex; align-items: center; gap: 8px; min-width: 76px; min-height: 44px; cursor: pointer; }
+.chk .num { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-size: 1.05rem; min-width: 1.6rem; text-align: right; }
+input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 28px; height: 28px; border-radius: 7px; border: 2px solid var(--muted); background: var(--surface); display: inline-grid; place-content: center; margin: 0; flex: none; cursor: pointer; }
+input[type="checkbox"]::after { content: ""; width: 14px; height: 8px; border-left: 3px solid var(--on-accent); border-bottom: 3px solid var(--on-accent); transform: rotate(-45deg) translate(1px, -1px); opacity: 0; }
+input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:checked::after { opacity: 1; }
+.claim input[type="checkbox"] { width: 22px; height: 22px; border-radius: 6px; }
+.claim input[type="checkbox"]::after { width: 10px; height: 6px; border-width: 2px; }
+.claim input[type="checkbox"]:disabled { opacity: 0.4; cursor: default; }
+input.note { min-height: 40px; padding: 7px 10px; border-color: transparent; background: var(--surface-2); font-size: 0.95rem; }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-block: 4px; }
+.loc { display: flex; flex-direction: column; gap: 1px; font-size: 0.93rem; overflow-wrap: anywhere; }
+.loc b { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+ol.shards li { align-items: start; }
+.shots { display: flex; gap: 14px; flex-wrap: wrap; }
+.shot { color: var(--accent); font-size: 0.85rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; min-height: 32px; }
+.chk { align-self: start; }
+.empty { color: var(--muted); text-align: center; padding: 22px 0; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.btn { font: inherit; font-size: 0.9rem; font-weight: 600; border-radius: 8px; padding: 9px 14px; min-height: 42px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.danger { color: #b3261e; }
+:root[data-theme="dark"] .btn.danger { color: #ff8f86; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.danger { color: #ff8f86; } }
+.msg { font-size: 0.85rem; color: var(--muted); min-height: 1.2em; margin: 6px 0 0; }
+.help { color: var(--muted); font-size: 0.88rem; margin: 6px 0 0; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+.shotd { margin: 0; }
+.shotd summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.shotd summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shotd img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin-top: 6px; background: var(--surface-2); min-height: 60px; }
+.shotd .fail { font-size: 0.85rem; color: var(--muted); margin: 6px 0 0; }
+.warn { font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="titlerow">
+      <h1>Resonance Shard Log</h1>
+      <div class="count" id="count" aria-live="polite">0<small> / 99</small></div>
+    </div>
+    <div class="bar" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="99" aria-valuenow="0" aria-label="Tablet Shards found"><i id="fill"></i></div>
+    <p class="sub" id="sub">Tap a number to tick a shard off.</p>
+  </header>
+
+  <main>
+    <p class="card warn" id="warn" hidden>This browser is not saving progress. Use Tools, then Copy backup, now and then, and paste it into Restore after a reset.</p>
+    <section class="card" aria-labelledby="nexth">
+      <h2 id="nexth">Next reward</h2>
+      <div class="next" id="next"></div>
+      <details style="margin-top:10px">
+        <summary>All 25 rewards</summary>
+        <ul class="ms" id="ms"></ul>
+        <p class="help">Turn shards in at Oblivion Palace, a bit south-west of Kol in Grandshelt. Tick "Claimed" once you have collected each one.</p>
+      </details>
+    </section>
+
+    <section aria-label="Shards">
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Filter shards">
+          <button type="button" data-f="all" aria-pressed="true">All</button>
+          <button type="button" data-f="missing" aria-pressed="false">Missing</button>
+          <button type="button" data-f="found" aria-pressed="false">Found</button>
+        </div>
+        <input class="search" type="search" id="q" placeholder="Search notes" aria-label="Search notes">
+      </div>
+      <p class="help" style="margin-bottom:10px">Shards are not numbered in the game. Numbers follow the order used by the PowerPyx and Game8 guides, which agree on the sequence. The guides differ on some wording, so treat locations as hints and add your own note if you need one. Tap Screenshot under a shard to load its image from PowerPyx. This needs an internet connection. Full guides: <a class="shot" href="https://www.powerpyx.com/final-fantasy-resonance-all-tablet-shard-locations/" target="_blank" rel="noopener noreferrer">PowerPyx</a> <a class="shot" href="https://game8.co/games/Final-Fantasy-Resonance/archives/631436" target="_blank" rel="noopener noreferrer">Game8</a></p>
+      <ol class="shards" id="list"></ol>
+      <p class="empty" id="empty" hidden>No shards match.</p>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>Tools</summary>
+        <h2 style="margin-top:12px">Fill notes from guide text</h2>
+        <p class="help">Paste lines that start with a shard number, like "12. Behind the inn". Matching shards get that text as their note.</p>
+        <textarea id="imp" aria-label="Guide text to import" placeholder="1. First location&#10;2. Second location"></textarea>
+        <div class="btns"><button type="button" class="btn primary" id="doimp">Fill notes</button></div>
+        <p class="msg" id="impmsg"></p>
+
+        <h2 style="margin-top:14px">Backup</h2>
+        <p class="help">Progress lives in this browser on this phone. Copy a backup to keep it somewhere safe, or paste one here and restore it.</p>
+        <textarea id="bk" aria-label="Backup text"></textarea>
+        <div class="btns">
+          <button type="button" class="btn" id="cpbk">Copy backup</button>
+          <button type="button" class="btn" id="rsbk">Restore from box</button>
+        </div>
+        <p class="msg" id="bkmsg"></p>
+
+        <h2 style="margin-top:14px">Start over</h2>
+        <div class="btns"><button type="button" class="btn danger" id="reset">Erase all progress</button></div>
+        <p class="msg" id="rsmsg"></p>
+      </details>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var KEY = "ffr-shard-log-v1";
+  var TOTAL = 99;
+  var MS = [[3,"Vitality Charm"],[6,"Earrings"],[9,"Magicite Shard"],[12,"Stagger Ring"],[16,"Dreadwing Mallet"],[20,"Compound Bow"],[24,"Magicite Shard"],[28,"Astral Jacket"],[32,"Cure Drop"],[36,"Celaeno Fragments"],[40,"Magicite"],[44,"Phantom Robe"],[48,"Repeater Rifle"],[52,"Protective Gear"],[56,"Briar Edge"],[60,"War Pick"],[64,"Magicite Cryst"],[68,"Mirage Jacket"],[72,"Sundering Odachi"],[76,"Ancient Firearm"],[80,"Adamantite"],[84,"Ancient Whip"],[89,"Adamantite"],[94,"Arch Drain"],[99,"Lightbringer"]];
+  var S = { found: {}, notes: {}, claimed: {} };
+  var LOC = [
+["Grandshelt, The Royal Capital","Commercial District, east of the main entrance, beside vendor stalls among crates."],
+["Village of Kol","Southwest of the village, by the pool."],
+["Town of Felicitas","Cross the eastern wooden bridge; it's by a stone wall."],
+["Town of Felicitas","Western bridge, then a hidden path. Climb a ladder and check behind a wall."],
+["Kolobos Ruins","Second area, down the steps on entry, behind two cylinders."],
+["Kolobos Ruins","After the bridge collapses and you fight, climb back up. Behind a fallen pillar."],
+["Grandport Harbour","Down the wooden pier south of the Item Shop, behind barrels."],
+["Grandport Harbour","West of the Weapon & Armour shop, at a tree's base."],
+["Cavern of Swords","Behind a stalagmite at the cave's end."],
+["Siren's Tower","Past the fountain, up the right stairs, at a ledge edge."],
+["Siren's Tower","Top of the first main area, at a ledge's end on the right."],
+["Siren's Tower","Next room, up the stairs and left, at a ledge's end."],
+["Dilmagia","First left-side area, in the corner by an NPC and an electric-lit gate."],
+["Dilmagia","Second intersection of the main area, behind a crate pile."],
+["Dilmagia Shipyard","Up the first stairs, then the left stairs, beside the ladder."],
+["Dilmagia Shipyard","Up the first stairs, then down the right stairs, by the third girder."],
+["Mt. Thunderclap","Harder path: around the corner past the yellowish tree."],
+["Mt. Thunderclap","Easier (paid) path: beside a tree after the long ladder."],
+["Mt. Thunderclap","Outside, south past the Zidane shrine, down a small ramp, behind rocks."],
+["Dwarven Forge","Southwest of the main area, across a wooden bridge, at the path's end."],
+["Dwarven Forge","Northwest area, down the steps to the Mom Bomb fight, south side of the path."],
+["Mobliz Shipyard","West in the first area, behind crates."],
+["Mobliz Shipyard","Past the first lift, through a fence gap, southeast ladder, then west."],
+["Mobliz Shipyard","After the second lift, north, behind a shipping container."],
+["Wind Shrine","First room, behind the right pillar (not the crystal elevator)."],
+["Wind Shrine","Top of a staircase by an elevator, in the gap between stairs and railing."],
+["Wind Shrine","South, across a crystal elevator to a platform, on the left side."],
+["Olderion, the Aquapolis","Right of the central platform, next to the boat tour NPC."],
+["Olderion, the Aquapolis","North of the entrance, by the statue pool, behind the bench at the left statue."],
+["Olderion, the Aquapolis","Northeast past a water wheel, on a stone bridge behind a plant pot."],
+["Olderion, the Aquapolis","Back at the statue pool, north up steps, behind a tree."],
+["Cave of Waters","Across the boat maze dock, just left of the path."],
+["Cave of Waters","Through a door after the boat maze, in front of a waterfall, same room as the Save Point."],
+["Cave of Waters","Hidden path in the room left of the entrance, up a couple of ladders."],
+["Waterfall Way","Second room, up the stairs east, next to a ladder."],
+["Waterfall Way","Room with the large waterfall, on a stone platform."],
+["Waterfall Way","Same room, north over wooden bridges, on a rock between waterfalls."],
+["Town of Amore","South of the Weapon and Item Shops, by a well on a grassy island."],
+["Town of Amore","North of the Item Shop, before the long bridge, by a tree on the right."],
+["Water Shrine","Circular platform room, down the north stairs after lowering the water."],
+["Water Shrine","Boat area: sail northeast past the Viridian Pot balcony, on a ledge to the right."],
+["Water Shrine","Just left of a long ladder, further down."],
+["Mozul Station","Southwest corner."],
+["Capital Station","Beside the eastern staircase/entrance."],
+["Zoldaad, the Imperial Capital","Castle Plaza, east of where the tram stops."],
+["Zoldaad, the Imperial Capital","Residential District, southeast corner."],
+["Zoldaad, the Imperial Capital","Slums, east of the spawn point, by barrels."],
+["Zoldaad Underground Tunnel","Past the metal walkway, down stairs, back west, then a ramp south to a corner."],
+["Zoldaad Underground Tunnel","South past the Pot enemy room, hidden entrance under a metal bridge, room on the right."],
+["Rebel Hideout","Northwest, behind Jake's room via a hidden path, up a ladder, southwest."],
+["Rebel Hideout","Northeast, up stairs right of the conference room exit, behind a metal pillar."],
+["Weapons Factory","Lava floor area, far west, up the stairs, crystal switch, across the girder, left."],
+["Weapons Factory","Platform with three crystal switches (ladder by the Save Point). Turn the left switch three times."],
+["Dungeon","After getting the Master Key, south to the cell room, first cell on the right."],
+["Dungeon","First room of the imprisonment area, in a cell on the west side you can now unlock."],
+["Zoldaad Castle","Behind the left horse statue at the throne room staircase."],
+["Zoldaad Castle","Right hallway from the throne room stairs, first door, southeast corner."],
+["Grandshelt, The Royal Capital","Colosseum, far west on the initial path (opens in Chapter 4)."],
+["Mysidia, the Magiapolis","Down the right stairs from the main entrance, in a corner behind an NPC."],
+["Mysidia, the Magiapolis","Storefront area, south of the Weapon Shop, next to two crates."],
+["Mysidia, the Magiapolis","West past the Item Shop, through the blue teleporter, second pillar right of the fountain."],
+["Arcane Library","Entrance room, southwest, among the writing desks."],
+["Arcane Library","Final room with the second Save Point, east ladder, then west along the balcony."],
+["Village of Sunioo","Just inside the village, two steps up between a bench and a pot."],
+["Village of Sunioo","Northeast part, by a snowman outside an igloo."],
+["Nameless Ruins","First room, far west, by a fallen pillar."],
+["Nameless Ruins","Second area, south of the Save Point, down stairs by a fallen chandelier."],
+["Fina's Psyche Pt. 1","Left of the large padlocked gate, under a chain."],
+["Fina's Psyche Pt. 1","West of the gate, in the westernmost tent, top-right crates."],
+["Fina's Psyche Pt. 1","End of the third area west of the gate, in a clearing."],
+["Tower of Mysidia","Top of the main entrance, up the stairs behind the large crystal."],
+["Tower of Mysidia","Spiral staircase, on a landing."],
+["Tower of Mysidia","Higher up, on a landing before the Azure Pot enemy."],
+["Tower of Mysidia","Past the Azure Pot enemy, on a snowdrift."],
+["Fina's Psyche Pt. 2","Small army camp north of the bridge, bottom-right corner behind supplies."],
+["Gaberads, the Undertown","Right side of a house in the northwest."],
+["Research Centre Ruins","Level 1 west path, room with desks and a green teleporter."],
+["Research Centre Ruins","Level 1 west path, three-console room, on shelves in the southeast corner."],
+["Research Centre Ruins","Level 2 east path, teleporter room, on the gantry right after the long ladder."],
+["Rugged Mountain Path","West of the first Save Point, under a dead tree."],
+["Rugged Mountain Path","East, down a ramp from the second Save Point, in the corner."],
+["Town of Duggle","North, east of the Weapon and Item Shop entrance, behind the waterfall."],
+["Gronoa Shrine","South end of the landing after leaving the first room."],
+["Gronoa Shrine","After the west stairs, south, then east, on stairs blocked by a fallen pillar."],
+["Gronoa Shrine","Down a long ladder, west, up a parallel ladder, south, against a broken pillar."],
+["Sanctissimus Shrine","North door from the second Save Point, behind stairs, hidden room at the top of the ladder with the Violet Pot."],
+["Sanctissimus Shrine","Ladder from the third Save Point to the crystal elevator room, after the third elevator."],
+["Town of Sian","East past the item shop, under a blossom tree."],
+["Mt. Reizan","From the initial Save Point, take the down path at the ramp crossroads."],
+["Mt. Reizan","Story path, on a platform between two wooden bridges, beside two pine trees."],
+["Lake Ryusei","West side, under a tree."],
+["Forest Path","North of the first Save Point, on a story path bend."],
+["Forest Path","Southwest of the second Save Point, at a dead end."],
+["Wandering Lands","Left turn at the first fork after the Save Point, on the story path."],
+["Wandering Lands","Story path, among stones, right after a cutscene."],
+["Crystal Tower","Right at the first fork of the main path from the entrance."],
+["Crystal Tower","After the previous shard, left at the next fork, then right."],
+["Crystal Tower","Translucent bridge area, north from the third solid platform, then west along the bridge."],
+["Dragon's Maw","Near the end of the dungeon, after defeating the Rogue Magitek Armour on the map."]
+  ];
+  var filter = "all", query = "";
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var p = JSON.parse(raw); S = { found: p.found || {}, notes: p.notes || {}, claimed: p.claimed || {} }; }
+    } catch (e) {}
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { var w = document.getElementById("warn"); if (w) w.hidden = false; } }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function found() { var n = 0; for (var i = 1; i <= TOTAL; i++) if (S.found[i]) n++; return n; }
+
+  function renderHeader() {
+    var n = found();
+    $("count").innerHTML = n + "<small> / " + TOTAL + "</small>";
+    $("fill").style.width = (n / TOTAL * 100) + "%";
+    $("bar").setAttribute("aria-valuenow", n);
+    var nx = null;
+    for (var i = 0; i < MS.length; i++) if (MS[i][0] > n) { nx = MS[i]; break; }
+    var toClaim = MS.filter(function (m) { return m[0] <= n && !S.claimed[m[0]]; }).length;
+    var html;
+    if (nx) {
+      html = '<div class="what"><strong>' + esc(nx[1]) + '</strong><div class="help" style="margin:0">at ' + nx[0] + ' shards, ' + (nx[0] - n) + ' to go</div></div>';
+    } else {
+      html = '<div class="what"><strong>Every reward reached</strong></div>';
+    }
+    if (toClaim > 0) html += '<span class="pill">' + toClaim + ' to collect</span>';
+    else html += '<span class="pill ok">Nothing waiting</span>';
+    $("next").innerHTML = html;
+    $("sub").textContent = n === 0 ? "Tap a number to tick a shard off." : (TOTAL - n) + " shards left to find.";
+    var ms = "";
+    MS.forEach(function (m) {
+      var reached = m[0] <= n;
+      ms += '<li class="' + (reached ? "" : "locked") + '"><span class="t">' + m[0] + '</span><span class="r">' + esc(m[1]) + '</span>' +
+        '<label class="claim"><input type="checkbox" data-m="' + m[0] + '" id="m-' + m[0] + '"' + (S.claimed[m[0]] ? " checked" : "") + (reached ? "" : " disabled") + '> Claimed</label></li>';
+    });
+    $("ms").innerHTML = ms;
+  }
+
+  var IMGBASE = "https://www.powerpyx.com/wp-content/uploads/final-fantasy-resonance-tablet-shards-guide-";
+  function shots(n) {
+    var files;
+    if (n === 53) files = ["53-1", "53-2"];
+    else if (n === 55) files = ["54"];
+    else if (n === 62) files = ["99"];
+    else if (n >= 63) files = [String(n - 1)];
+    else files = [String(n)];
+    return files.map(function (f, i) {
+      var label = files.length > 1 ? "Screenshot " + (i + 1) : "Screenshot";
+      var url = IMGBASE + f + ".jpg";
+      return '<details class="shotd"><summary>' + label + '</summary><img alt="Screenshot for shard ' + n + '" data-src="' + url + '" decoding="async"><a class="shot" href="' + url + '" target="_blank" rel="noopener noreferrer">Open full size</a></details>';
+    }).join("");
+  }
+
+  function renderList() {
+    var html = "", shown = 0, q = query.trim().toLowerCase();
+    for (var i = 1; i <= TOTAL; i++) {
+      var isF = !!S.found[i];
+      if (filter === "missing" && isF) continue;
+      if (filter === "found" && !isF) continue;
+      var note = S.notes[i] || "";
+      var L = LOC[i - 1] || ["", ""];
+      if (q && (note + " " + L[0] + " " + L[1]).toLowerCase().indexOf(q) === -1 && String(i) !== q) continue;
+      shown++;
+      html += '<li class="' + (isF ? "done" : "") + '" data-n="' + i + '">' +
+        '<label class="chk"><input type="checkbox" data-n="' + i + '" id="s-' + i + '"' + (isF ? " checked" : "") + ' aria-label="Shard ' + i + ' found"><span class="num">' + i + '</span></label>' +
+        '<div class="body"><div class="loc"><b>' + esc(L[0]) + '</b><span>' + esc(L[1]) + '</span></div><div class="shots">' + shots(i) + '</div>' +
+        '<input class="note" type="text" data-n="' + i + '" id="n-' + i + '" maxlength="200" placeholder="Your own note" aria-label="Note for shard ' + i + '" value="' + esc(note) + '"></div></li>';
+    }
+    $("list").innerHTML = html;
+    $("empty").hidden = shown !== 0;
+  }
+
+  $("list").addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.type !== "checkbox") return;
+    var n = t.getAttribute("data-n");
+    if (t.checked) S.found[n] = true; else delete S.found[n];
+    save();
+    renderHeader();
+    if (filter === "all") t.closest("li").classList.toggle("done", t.checked);
+    else renderList();
+  });
+  $("list").addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t.classList.contains("note")) return;
+    var n = t.getAttribute("data-n");
+    if (t.value) S.notes[n] = t.value; else delete S.notes[n];
+    save();
+  });
+  $("ms").addEventListener("change", function (e) {
+    var t = e.target, m = t.getAttribute("data-m");
+    if (!m) return;
+    if (t.checked) S.claimed[m] = true; else delete S.claimed[m];
+    save();
+    var open = document.querySelector("details");
+    renderHeader();
+    var d = document.querySelector("section.card details");
+    if (d) d.open = true;
+  });
+  document.querySelectorAll(".seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      filter = b.getAttribute("data-f");
+      document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      renderList();
+    });
+  });
+  $("q").addEventListener("input", function (e) { query = e.target.value; renderList(); });
+
+  $("doimp").addEventListener("click", function () {
+    var lines = $("imp").value.split(/\r?\n/), c = 0;
+    lines.forEach(function (ln) {
+      var m = ln.match(/^\s*#?(\d{1,2})\s*[\.\):\-]\s*(.+?)\s*$/);
+      if (!m) return;
+      var n = parseInt(m[1], 10);
+      if (n < 1 || n > TOTAL) return;
+      S.notes[n] = m[2].slice(0, 200); c++;
+    });
+    save(); renderList();
+    $("impmsg").textContent = c ? "Filled " + c + " notes." : "No lines starting with a shard number were found.";
+  });
+
+  $("cpbk").addEventListener("click", function () {
+    var txt = JSON.stringify(S);
+    var box = $("bk");
+    box.value = txt;
+    function fallback() { box.focus(); box.select(); $("bkmsg").textContent = "Backup is in the box. Select it and copy."; }
+    try {
+      navigator.clipboard.writeText(txt).then(function () { $("bkmsg").textContent = "Backup copied."; }, fallback);
+    } catch (e) { fallback(); }
+  });
+  $("rsbk").addEventListener("click", function () {
+    try {
+      var p = JSON.parse($("bk").value);
+      if (!p || typeof p !== "object") throw new Error("bad");
+      S = { found: p.found || {}, notes: p.notes || {}, claimed: p.claimed || {} };
+      save(); renderHeader(); renderList();
+      $("bkmsg").textContent = "Restored.";
+    } catch (e) { $("bkmsg").textContent = "That text is not a valid backup."; }
+  });
+
+  var armed = false, timer = null;
+  $("reset").addEventListener("click", function () {
+    var b = $("reset");
+    if (!armed) {
+      armed = true; b.textContent = "Tap again to erase everything";
+      $("rsmsg").textContent = "This clears every tick, note and claim on this phone.";
+      timer = setTimeout(function () { armed = false; b.textContent = "Erase all progress"; $("rsmsg").textContent = ""; }, 5000);
+    } else {
+      clearTimeout(timer); armed = false;
+      S = { found: {}, notes: {}, claimed: {} }; save();
+      b.textContent = "Erase all progress"; $("rsmsg").textContent = "All progress erased.";
+      renderHeader(); renderList();
+    }
+  });
+
+  $("list").addEventListener("toggle", function (e) {
+    var d = e.target;
+    if (!d.classList || !d.classList.contains("shotd") || !d.open) return;
+    var im = d.querySelector("img");
+    if (im && !im.getAttribute("src")) im.setAttribute("src", im.getAttribute("data-src"));
+  }, true);
+  $("list").addEventListener("error", function (e) {
+    var im = e.target;
+    if (!im || im.tagName !== "IMG") return;
+    var p = document.createElement("p");
+    p.className = "fail";
+    p.textContent = "The image did not load. Check your connection or use Open full size.";
+    im.replaceWith(p);
+  }, true);
+  try { localStorage.setItem(KEY + "-t", "1"); localStorage.removeItem(KEY + "-t"); } catch (e) { $("warn").hidden = false; }
+
+  load(); renderHeader(); renderList();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+}
+</script>
+</body>
+</html>
