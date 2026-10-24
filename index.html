@@ -161,10 +161,8 @@ ol.shards li { align-items: start; }
 .msg { font-size: 0.85rem; color: var(--muted); min-height: 1.2em; margin: 6px 0 0; }
 .help { color: var(--muted); font-size: 0.88rem; margin: 6px 0 0; }
 @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
-.shotd { margin: 0; }
-.shotd summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
-.shotd summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.shotd img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin-top: 6px; background: var(--surface-2); min-height: 60px; }
+.shotd { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.shotd img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 8px; background: var(--surface-2); }
 .shotd .fail { font-size: 0.85rem; color: var(--muted); margin: 6px 0 0; }
 .warn { font-size: 0.9rem; }
 </style>
@@ -201,7 +199,7 @@ ol.shards li { align-items: start; }
         </div>
         <input class="search" type="search" id="q" placeholder="Search notes" aria-label="Search notes">
       </div>
-      <p class="help" style="margin-bottom:10px">Shards are not numbered in the game. Numbers follow the order used by the PowerPyx and Game8 guides, which agree on the sequence. The guides differ on some wording, so treat locations as hints and add your own note if you need one. Tap Screenshot under a shard to load its image from PowerPyx. This needs an internet connection. Full guides: <a class="shot" href="https://www.powerpyx.com/final-fantasy-resonance-all-tablet-shard-locations/" target="_blank" rel="noopener noreferrer">PowerPyx</a> <a class="shot" href="https://game8.co/games/Final-Fantasy-Resonance/archives/631436" target="_blank" rel="noopener noreferrer">Game8</a></p>
+      <p class="help" style="margin-bottom:10px">Shards are not numbered in the game. Numbers follow the order used by the PowerPyx and Game8 guides, which agree on the sequence. The guides differ on some wording, so treat locations as hints and add your own note if you need one. Screenshots from PowerPyx load as you scroll and need an internet connection. Full guides: <a class="shot" href="https://www.powerpyx.com/final-fantasy-resonance-all-tablet-shard-locations/" target="_blank" rel="noopener noreferrer">PowerPyx</a> <a class="shot" href="https://game8.co/games/Final-Fantasy-Resonance/archives/631436" target="_blank" rel="noopener noreferrer">Game8</a></p>
       <ol class="shards" id="list"></ol>
       <p class="empty" id="empty" hidden>No shards match.</p>
     </section>
@@ -387,10 +385,9 @@ ol.shards li { align-items: start; }
     else if (n === 62) files = ["99"];
     else if (n >= 63) files = [String(n - 1)];
     else files = [String(n)];
-    return files.map(function (f, i) {
-      var label = files.length > 1 ? "Screenshot " + (i + 1) : "Screenshot";
+    return files.map(function (f) {
       var url = IMGBASE + f + ".jpg";
-      return '<details class="shotd"><summary>' + label + '</summary><img alt="Screenshot for shard ' + n + '" data-src="' + url + '" decoding="async"><a class="shot" href="' + url + '" target="_blank" rel="noopener noreferrer">Open full size</a></details>';
+      return '<figure class="shotd"><img alt="Screenshot for shard ' + n + '" src="' + url + '" loading="lazy" decoding="async"><a class="shot" href="' + url + '" target="_blank" rel="noopener noreferrer">Open full size</a></figure>';
     }).join("");
   }
 
@@ -496,12 +493,6 @@ ol.shards li { align-items: start; }
     }
   });
 
-  $("list").addEventListener("toggle", function (e) {
-    var d = e.target;
-    if (!d.classList || !d.classList.contains("shotd") || !d.open) return;
-    var im = d.querySelector("img");
-    if (im && !im.getAttribute("src")) im.setAttribute("src", im.getAttribute("data-src"));
-  }, true);
   $("list").addEventListener("error", function (e) {
     var im = e.target;
     if (!im || im.tagName !== "IMG") return;
